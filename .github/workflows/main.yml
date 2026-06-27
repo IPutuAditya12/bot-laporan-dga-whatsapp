@@ -2,7 +2,7 @@ name: Kirim Laporan DGA
 
 on:
   schedule:
-    - cron: '0 1 * * *'  # 01:00 UTC = 08:00 WIB
+    - cron: '15 15 * * *'  # 01:00 UTC = 08:00 WIB
   workflow_dispatch:
 
 jobs:
