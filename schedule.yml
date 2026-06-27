@@ -1,0 +1,33 @@
+name: Kirim Laporan DGA
+
+on:
+  schedule:
+    # Setiap hari jam 08:00 UTC (15:00 WIB = 8:00 + 7 jam)
+    - cron: '0 1 * * *'  # 1:00 UTC = 08:00 WIB
+  workflow_dispatch:  # Manual trigger
+
+jobs:
+  send-laporan:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      
+      - name: Install dependencies
+        run: |
+          pip install openpyxl pandas requests
+      
+      - name: Download Excel file from Google Drive
+        run: |
+          # Download file dari Google Drive
+          # Replace FILE_ID dengan ID file kamu dari share link
+          FILE_ID="1ZlPaZQwz89UkjABHgxqmcYnTklB5yK2V"
+          curl -L "https://drive.google.com/uc?export=download&id=$FILE_ID" -o Laporan.xlsx
+      
+      - name: Run script
+        run: python send_laporan.py
