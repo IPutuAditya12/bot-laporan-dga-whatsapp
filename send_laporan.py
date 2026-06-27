@@ -2,7 +2,6 @@ import pandas as pd
 import requests
 from typing import List, Dict
 import time
-import openpyxl
 import os
 from datetime import datetime, timedelta, timezone
 
@@ -10,22 +9,35 @@ from datetime import datetime, timedelta, timezone
 FONNTE_API_KEY = "9eHaFAQMb9pqoGABACCb"
 FONNTE_API_URL = "https://api.fonnte.com/send"
 
-# Path ke file Excel (lokal)
-EXCEL_FILE = "Laporan.xlsx"
+# Google Sheets ID (dari URL)
+SHEET_ID = "1ZlPaZQwz89UkjABHgxqmcYnTklB5yK2V"
+SHEET_NAME = "Laporan"
 
-def read_laporan_sheet_by_cell(file_path: str) -> Dict:
+def read_laporan_from_google_sheets(sheet_id: str, sheet_name: str) -> Dict:
+    """
+    Baca data langsung dari Google Sheets (tanpa perlu Excel file)
+    """
     try:
-        wb = openpyxl.load_workbook(file_path, data_only=True)
-        ws = wb['Laporan']
+        # URL untuk export sheet sebagai CSV
+        csv_url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv&sheet={sheet_name}"
         
-        print(f"✓ Sheet 'Laporan' berhasil dibaca")
+        print(f"✓ Mengambil data dari Google Sheets...")
         
-        def get_value(cell, default=''):
-            val = cell.value if cell else None
-            if val is None:
+        # Baca sebagai pandas DataFrame
+        df = pd.read_csv(csv_url, header=None)
+        
+        print(f"✓ Data berhasil diambil ({len(df)} baris)")
+        
+        # Helper function
+        def get_cell_value(row, col, default=''):
+            try:
+                val = df.iloc[row, col]
+                if pd.isna(val):
+                    return default
+                return str(val).strip()
+            except:
                 return default
-            return str(val).strip()
-
+        
         def format_tahun(tahun):
             try:
                 if isinstance(tahun, (int, float)):
@@ -35,7 +47,7 @@ def read_laporan_sheet_by_cell(file_path: str) -> Dict:
                     return tahun_str
             except:
                 return str(tahun)
-              
+        
         def format_date(date_str):
             if not date_str:
                 return ''
@@ -55,102 +67,106 @@ def read_laporan_sheet_by_cell(file_path: str) -> Dict:
             except:
                 return date_str
         
+        # Mapping: Baris dan Kolom (index dimulai dari 0)
+        # Row 3 (index 2), Col B (index 1)
         data = {
-            'perusahaan': get_value(ws['B3'], 'PT GI REJOSO PASURUAN'),
-            'judul_laporan': get_value(ws['C5'], 'LAPORAN RUTIN DGA'),
-            'tahun': format_tahun(get_value(ws['C6'], '2025')),
-            'tanggal_pengukuran': format_date(get_value(ws['B6'], '')),
-            'tanggal_laporan': format_date(get_value(ws['B8'], '')),
-            'unit': get_value(ws['G5'], ''),
-            'asset': get_value(ws['G6'], ''),
+            # Header & Informasi Dasar
+            'perusahaan': get_cell_value(2, 1, 'PT GI REJOSO PASURUAN'),  # B3
+            'judul_laporan': get_cell_value(4, 2, 'LAPORAN RUTIN DGA'),    # C5
+            'tahun': format_tahun(get_cell_value(5, 2, '2025')),           # C6
+            'tanggal_pengukuran': format_date(get_cell_value(5, 1, '')),   # B6
+            'tanggal_laporan': format_date(get_cell_value(7, 1, '')),      # B8
+            'unit': get_cell_value(4, 6, ''),                              # G5
+            'asset': get_cell_value(5, 6, ''),                             # G6
             
-            'manufacture': get_value(ws['C11'], ''),
-            'type': get_value(ws['C12'], ''),
-            'kapasitas': get_value(ws['C13'], ''),
-            'serial_number': get_value(ws['C14'], ''),
-            'tegangan_primer': get_value(ws['C15'], ''),
-            'tegangan_sekunder': get_value(ws['C16'], ''),
+            # Spesifikasi Trafo Kolom C
+            'manufacture': get_cell_value(10, 2, ''),      # C11
+            'type': get_cell_value(11, 2, ''),             # C12
+            'kapasitas': get_cell_value(12, 2, ''),        # C13
+            'serial_number': get_cell_value(13, 2, ''),    # C14
+            'tegangan_primer': get_cell_value(14, 2, ''),  # C15
+            'tegangan_sekunder': get_cell_value(15, 2, ''),# C16
             
-            'arus_primer': get_value(ws['E11'], ''),
-            'arus_sekunder': get_value(ws['E12'], ''),
-            'frequency': get_value(ws['E13'], ''),
-            'phase': get_value(ws['E14'], ''),
-            'temp_rise': get_value(ws['E15'], ''),
-            'berat_oli': get_value(ws['E16'], ''),
+            # Spesifikasi Trafo Kolom E
+            'arus_primer': get_cell_value(10, 4, ''),      # E11
+            'arus_sekunder': get_cell_value(11, 4, ''),    # E12
+            'frequency': get_cell_value(12, 4, ''),        # E13
+            'phase': get_cell_value(13, 4, ''),            # E14
+            'temp_rise': get_cell_value(14, 4, ''),        # E15
+            'berat_oli': get_cell_value(15, 4, ''),        # E16
             
-            'hubungan': get_value(ws['G11'], ''),
-            'cooling_type': get_value(ws['G12'], ''),
-            'tahun_pembuatan': format_tahun(get_value(ws['G13'], '')),
-            'impedansi': get_value(ws['G14'], ''),
-            'berat_total': get_value(ws['G15'], ''),
+            # Spesifikasi Trafo Kolom G
+            'hubungan': get_cell_value(10, 6, ''),         # G11
+            'cooling_type': get_cell_value(11, 6, ''),     # G12
+            'tahun_pembuatan': format_tahun(get_cell_value(12, 6, '')), # G13
+            'impedansi': get_cell_value(13, 6, ''),        # G14
+            'berat_total': get_cell_value(14, 6, ''),      # G15
             
-            'h2_hasil': get_value(ws['D19'], 0),
-            'h2_kondisi': get_value(ws['E19'], 0),
-            'h2_prealarm': get_value(ws['F19'], 0),
-            'h2_alarm': get_value(ws['G19'], 0),
+            # Analisis Konten Gas
+            'h2_hasil': get_cell_value(18, 3, 0),      # D19
+            'h2_kondisi': get_cell_value(18, 4, 0),    # E19
+            'h2_prealarm': get_cell_value(18, 5, 0),   # F19
+            'h2_alarm': get_cell_value(18, 6, 0),      # G19
             
-            'h2o_hasil': get_value(ws['D20'], 0),
-            'h2o_kondisi': get_value(ws['E20'], 0),
-            'h2o_prealarm': get_value(ws['F20'], 0),
-            'h2o_alarm': get_value(ws['G20'], 0),
+            'h2o_hasil': get_cell_value(19, 3, 0),
+            'h2o_kondisi': get_cell_value(19, 4, 0),
+            'h2o_prealarm': get_cell_value(19, 5, 0),
+            'h2o_alarm': get_cell_value(19, 6, 0),
             
-            'co2_hasil': get_value(ws['D22'], 0),
-            'co2_kondisi': get_value(ws['E22'], 0),
-            'co2_prealarm': get_value(ws['F22'], 0),
-            'co2_alarm': get_value(ws['G22'], 0),
+            'co2_hasil': get_cell_value(21, 3, 0),
+            'co2_kondisi': get_cell_value(21, 4, 0),
+            'co2_prealarm': get_cell_value(21, 5, 0),
+            'co2_alarm': get_cell_value(21, 6, 0),
             
-            'co_hasil': get_value(ws['D23'], 0),
-            'co_kondisi': get_value(ws['E23'], 0),
-            'co_prealarm': get_value(ws['F23'], 0),
-            'co_alarm': get_value(ws['G23'], 0),
+            'co_hasil': get_cell_value(22, 3, 0),
+            'co_kondisi': get_cell_value(22, 4, 0),
+            'co_prealarm': get_cell_value(22, 5, 0),
+            'co_alarm': get_cell_value(22, 6, 0),
             
-            'c2h4_hasil': get_value(ws['D24'], 0),
-            'c2h4_kondisi': get_value(ws['E24'], 0),
-            'c2h4_prealarm': get_value(ws['F24'], 0),
-            'c2h4_alarm': get_value(ws['G24'], 0),
+            'c2h4_hasil': get_cell_value(23, 3, 0),
+            'c2h4_kondisi': get_cell_value(23, 4, 0),
+            'c2h4_prealarm': get_cell_value(23, 5, 0),
+            'c2h4_alarm': get_cell_value(23, 6, 0),
             
-            'c2h6_hasil': get_value(ws['D25'], 0),
-            'c2h6_kondisi': get_value(ws['E25'], 0),
-            'c2h6_prealarm': get_value(ws['F25'], 0),
-            'c2h6_alarm': get_value(ws['G25'], 0),
+            'c2h6_hasil': get_cell_value(24, 3, 0),
+            'c2h6_kondisi': get_cell_value(24, 4, 0),
+            'c2h6_prealarm': get_cell_value(24, 5, 0),
+            'c2h6_alarm': get_cell_value(24, 6, 0),
             
-            'ch4_hasil': get_value(ws['D26'], 0),
-            'ch4_kondisi': get_value(ws['E26'], 0),
-            'ch4_prealarm': get_value(ws['F26'], 0),
-            'ch4_alarm': get_value(ws['G26'], 0),
+            'ch4_hasil': get_cell_value(25, 3, 0),
+            'ch4_kondisi': get_cell_value(25, 4, 0),
+            'ch4_prealarm': get_cell_value(25, 5, 0),
+            'ch4_alarm': get_cell_value(25, 6, 0),
             
-            'c2h2_hasil': get_value(ws['D27'], 0),
-            'c2h2_kondisi': get_value(ws['E27'], 0),
-            'c2h2_prealarm': get_value(ws['F27'], 0),
-            'c2h2_alarm': get_value(ws['G27'], 0),
+            'c2h2_hasil': get_cell_value(26, 3, 0),
+            'c2h2_kondisi': get_cell_value(26, 4, 0),
+            'c2h2_prealarm': get_cell_value(26, 5, 0),
+            'c2h2_alarm': get_cell_value(26, 6, 0),
             
-            'tdcg_hasil': get_value(ws['D28'], 0),
-            'tdcg_kondisi': get_value(ws['E28'], 0),
-            'tdcg_prealarm': get_value(ws['F28'], 0),
-            'tdcg_alarm': get_value(ws['G28'], 0),
+            'tdcg_hasil': get_cell_value(27, 3, 0),
+            'tdcg_kondisi': get_cell_value(27, 4, 0),
+            'tdcg_prealarm': get_cell_value(27, 5, 0),
+            'tdcg_alarm': get_cell_value(27, 6, 0),
             
-            'tdcg_analisa': get_value(ws['C32'], 'KONDISI 1'),
-            'keygas_analisa': get_value(ws['C33'], 'OVERHEATING OF CELLULOSE'),
-            'roger_ratio_analisa': get_value(ws['C34'], 'TIDAK TERDEFINISIKAN'),
-            'duval_triangle_analisa': get_value(ws['C35'], 'T3'),
+            # Analisa
+            'tdcg_analisa': get_cell_value(31, 2, 'KONDISI 1'),
+            'keygas_analisa': get_cell_value(32, 2, 'OVERHEATING OF CELLULOSE'),
+            'roger_ratio_analisa': get_cell_value(33, 2, 'TIDAK TERDEFINISIKAN'),
+            'duval_triangle_analisa': get_cell_value(34, 2, 'T3'),
             
-            'tdcg_rekomendasi': get_value(ws['C37'], 'Sampling 12 Bulan + Operasi Normal'),
-            'keygas_rekomendasi': get_value(ws['C38'], 'Uji PD, Furan, Kadar Air + Cek Umur Isolasi'),
-            'roger_ratio_rekomendasi': get_value(ws['C39'], 'GUNAKAN METODE KEYGAS DAN DUVAL TRIANGLE'),
-            'duval_triangle_rekomendasi': get_value(ws['C40'], 'LEPAS BEBAN + INSPEKSI INTERNAL TRAFO'),
+            # Rekomendasi
+            'tdcg_rekomendasi': get_cell_value(36, 2, 'Sampling 12 Bulan + Operasi Normal'),
+            'keygas_rekomendasi': get_cell_value(37, 2, 'Uji PD, Furan, Kadar Air + Cek Umur Isolasi'),
+            'roger_ratio_rekomendasi': get_cell_value(38, 2, 'GUNAKAN METODE KEYGAS DAN DUVAL TRIANGLE'),
+            'duval_triangle_rekomendasi': get_cell_value(39, 2, 'LEPAS BEBAN + INSPEKSI INTERNAL TRAFO'),
         }
         
-        wb.close()
         return data
         
-    except FileNotFoundError:
-        print(f"✗ File tidak ditemukan: {file_path}")
-        return None
     except Exception as e:
         print(f"✗ Error: {str(e)}")
         return None
 
-        
 def get_current_time_wib():
     """Ambil waktu saat ini dalam timezone Indonesia (WIB = UTC+7)"""
     tz_wib = timezone(timedelta(hours=7))
@@ -280,13 +296,8 @@ if __name__ == "__main__":
     print(f"⏰ Waktu: {get_current_time_wib()}")
     print("="*70 + "\n")
     
-    # Cek file ada
-    if not os.path.exists(EXCEL_FILE):
-        print(f"❌ File tidak ditemukan: {EXCEL_FILE}")
-        exit(1)
-    
-    print("1️⃣  Membaca file Excel...")
-    data = read_laporan_sheet_by_cell(EXCEL_FILE)
+    print("1️⃣  Membaca data dari Google Sheets...")
+    data = read_laporan_from_google_sheets(SHEET_ID, SHEET_NAME)
     
     if data is None:
         print("\n❌ Program dihentikan!")
