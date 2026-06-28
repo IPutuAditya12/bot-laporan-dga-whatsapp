@@ -117,10 +117,6 @@ def read_laporan_from_google_sheets():
 
     return data
 
-    except Exception as e:
-        print(f"Error: {e}")
-        return None
-
 
 # ================== FORMAT MESSAGE ==================
 def get_current_time_wib():
