@@ -11,105 +11,111 @@ FONNTE_API_URL = "https://api.fonnte.com/send"
 SHEET_ID = "1ZlPaZQwz89UkjABHgxqmcYnTklB5yK2V"
 SHEET_NAME = "Laporan"
 
-def read_laporan_from_google_sheets(sheet_id: str, sheet_name: str) -> Dict:
-    try:
-        csv_url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv&sheet={sheet_name}"
-        df = pd.read_csv(csv_url, header=None)
+def read_laporan_from_google_sheets():
+    csv_url = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv&sheet={SHEET_NAME}"
+    df = pd.read_csv(csv_url, header=None)
+    
+    print("=== DEBUG SHEET PREVIEW ===")
+    print(df.to_string(max_rows=50, max_cols=10))
+    print("\n")
 
-        def get_cell(row: int, col: int, default: Any = ""):
-            try:
-                val = df.iloc[row, col]
-                if pd.isna(val) or str(val).strip() in ["", "nan", "NaN"]:
-                    return default
-                return str(val).strip()
-            except:
-                return default
+    def g(row, col):
+        try:
+            val = df.iloc[row, col]
+            return str(val).strip() if not pd.isna(val) else ""
+        except:
+            return ""
 
-        def clean_number(val):
-            if not val:
-                return "0"
-            return str(val).replace("ppm", "").replace("ltr", "").replace(",", ".").strip()
+    # Debug beberapa cell penting
+    print("=== DEBUG CELL PENTING ===")
+    print(f"Perusahaan (2,1)     : {g(2,1)}")
+    print(f"Judul (4,3)          : {g(4,3)}")
+    print(f"Tgl Ukur (5,1)       : {g(5,1)}")
+    print(f"Tahun (5,2)          : {g(5,2)}")
+    print(f"Manufacture (9,2)    : {g(9,2)}")
+    print(f"Kapasitas (11,2)     : {g(11,2)}")
+    print(f"H2 Hasil (16,3)      : {g(16,3)}")
+    print(f"H2O Hasil (17,3)     : {g(17,3)}")
+    print(f"CO2 Hasil (18,3)     : {g(18,3)}")
+    print(f"CO Hasil (19,3)      : {g(19,3)}")
+    print(f"TDCG Analisa (27,1)  : {g(27,1)}")
+    print("==========================\n")
 
-        data = {
-            'perusahaan': get_cell(2, 1),
-            'judul_laporan': get_cell(4, 3),
-            'tahun': get_cell(5, 2),
-            'tanggal_pengukuran': get_cell(5, 1),
-            'tanggal_laporan': get_cell(7, 1),
-            'unit': get_cell(4, 6),
-            'asset': get_cell(5, 5),
+    data = {
+        'perusahaan': g(2, 1),
+        'judul_laporan': g(4, 3),
+        'tahun': g(5, 2),
+        'tanggal_pengukuran': g(5, 1),
+        'tanggal_laporan': g(7, 1),
+        'unit': g(4, 6),
+        'manufacture': g(9, 2),
+        'kapasitas': g(11, 2),
+        'tegangan_primer': g(13, 2),
+        'tegangan_sekunder': g(14, 2),
+        'frequency': g(11, 4),
+        'phase': g(12, 4),
+        'cooling_type': g(10, 6),
+        'hubungan': g(9, 6),
+        'tahun_pembuatan': g(11, 6),
+        'berat_oli': g(14, 4),
 
-            'manufacture': get_cell(9, 2),
-            'kapasitas': get_cell(11, 2),
-            'serial_number': get_cell(12, 1),
-            'tegangan_primer': get_cell(13, 2),
-            'tegangan_sekunder': get_cell(14, 2),
-            'frequency': get_cell(11, 4),
-            'phase': get_cell(12, 4),
-            'cooling_type': get_cell(10, 6),
-            'hubungan': get_cell(9, 6),
-            'tahun_pembuatan': get_cell(11, 6),
-            'berat_oli': get_cell(14, 4),
+        'h2_hasil': g(16, 3),
+        'h2_kondisi': g(16, 4),
+        'h2_prealarm': g(16, 5),
+        'h2_alarm': g(16, 6),
 
-            # === GAS ANALYSIS - Mapping akurat berdasarkan CSV ===
-            'h2_hasil': clean_number(get_cell(16, 3)),
-            'h2_kondisi': get_cell(16, 4),
-            'h2_prealarm': get_cell(16, 5),
-            'h2_alarm': get_cell(16, 6),
+        'h2o_hasil': g(17, 3),
+        'h2o_kondisi': g(17, 4),
+        'h2o_prealarm': g(17, 5),
+        'h2o_alarm': g(17, 6),
 
-            'h2o_hasil': clean_number(get_cell(17, 3)),
-            'h2o_kondisi': get_cell(17, 4),
-            'h2o_prealarm': get_cell(17, 5),
-            'h2o_alarm': get_cell(17, 6),
+        'co2_hasil': g(18, 3),
+        'co2_kondisi': g(18, 4),
+        'co2_prealarm': g(18, 5),
+        'co2_alarm': g(18, 6),
 
-            'co2_hasil': clean_number(get_cell(18, 3)),
-            'co2_kondisi': get_cell(18, 4),
-            'co2_prealarm': get_cell(18, 5),
-            'co2_alarm': get_cell(18, 6),
+        'co_hasil': g(19, 3),
+        'co_kondisi': g(19, 4),
+        'co_prealarm': g(19, 5),
+        'co_alarm': g(19, 6),
 
-            'co_hasil': clean_number(get_cell(19, 3)),
-            'co_kondisi': get_cell(19, 4),
-            'co_prealarm': get_cell(19, 5),
-            'co_alarm': get_cell(19, 6),
+        'c2h4_hasil': g(20, 3),
+        'c2h4_kondisi': g(20, 4),
+        'c2h4_prealarm': g(20, 5),
+        'c2h4_alarm': g(20, 6),
 
-            'c2h4_hasil': clean_number(get_cell(20, 3)),
-            'c2h4_kondisi': get_cell(20, 4),
-            'c2h4_prealarm': get_cell(20, 5),
-            'c2h4_alarm': get_cell(20, 6),
+        'c2h6_hasil': g(21, 3),
+        'c2h6_kondisi': g(21, 4),
+        'c2h6_prealarm': g(21, 5),
+        'c2h6_alarm': g(21, 6),
 
-            'c2h6_hasil': clean_number(get_cell(21, 3)),
-            'c2h6_kondisi': get_cell(21, 4),
-            'c2h6_prealarm': get_cell(21, 5),
-            'c2h6_alarm': get_cell(21, 6),
+        'ch4_hasil': g(22, 3),
+        'ch4_kondisi': g(22, 4),
+        'ch4_prealarm': g(22, 5),
+        'ch4_alarm': g(22, 6),
 
-            'ch4_hasil': clean_number(get_cell(22, 3)),
-            'ch4_kondisi': get_cell(22, 4),
-            'ch4_prealarm': get_cell(22, 5),
-            'ch4_alarm': get_cell(22, 6),
+        'c2h2_hasil': g(23, 3),
+        'c2h2_kondisi': g(23, 4),
+        'c2h2_prealarm': g(23, 5),
+        'c2h2_alarm': g(23, 6),
 
-            'c2h2_hasil': clean_number(get_cell(23, 3)),
-            'c2h2_kondisi': get_cell(23, 4),
-            'c2h2_prealarm': get_cell(23, 5),
-            'c2h2_alarm': get_cell(23, 6),
+        'tdcg_hasil': g(24, 3),
+        'tdcg_kondisi': g(24, 4),
+        'tdcg_prealarm': g(24, 5),
+        'tdcg_alarm': g(24, 6),
 
-            'tdcg_hasil': clean_number(get_cell(24, 3)),
-            'tdcg_kondisi': get_cell(24, 4),
-            'tdcg_prealarm': get_cell(24, 5),
-            'tdcg_alarm': get_cell(24, 6),
+        'tdcg_analisa': g(27, 1),
+        'keygas_analisa': g(28, 1),
+        'roger_ratio_analisa': g(29, 1),
+        'duval_triangle_analisa': g(30, 1),
 
-            # Analisa & Rekomendasi
-            'tdcg_analisa': get_cell(27, 1),
-            'keygas_analisa': get_cell(28, 1),
-            'roger_ratio_analisa': get_cell(29, 1),
-            'duval_triangle_analisa': get_cell(30, 1),
+        'tdcg_rekomendasi': g(32, 1),
+        'keygas_rekomendasi': g(33, 1),
+        'roger_ratio_rekomendasi': g(34, 1),
+        'duval_triangle_rekomendasi': g(35, 1),
+    }
 
-            'tdcg_rekomendasi': get_cell(32, 1),
-            'keygas_rekomendasi': get_cell(33, 1),
-            'roger_ratio_rekomendasi': get_cell(34, 1),
-            'duval_triangle_rekomendasi': get_cell(35, 1),
-        }
-
-        return data
+    return data
 
     except Exception as e:
         print(f"Error: {e}")
@@ -197,11 +203,28 @@ if __name__ == "__main__":
     print(f"⏰ Waktu: {get_current_time_wib()}")
     print("="*70)
 
+    data = read_laporan_from_google_sheets()
+    
+    # Print beberapa nilai penting
+    print("=== HASIL MAPPING ===")
+    print(f"Perusahaan : {data['perusahaan']}")
+    print(f"Judul      : {data['judul_laporan']}")
+    print(f"H2         : {data['h2_hasil']}")
+    print(f"CO2        : {data['co2_hasil']}")
+    print(f"TDCG Analisa : {data['tdcg_analisa']}")
+    print("====================")
+
     data = read_laporan_from_google_sheets(SHEET_ID, SHEET_NAME)
     if not data:
         print("❌ Gagal membaca data")
         exit(1)
-
+    print("=== HASIL MAPPING ===")
+    print(f"Perusahaan : {data['perusahaan']}")
+    print(f"Judul      : {data['judul_laporan']}")
+    print(f"H2         : {data['h2_hasil']}")
+    print(f"CO2        : {data['co2_hasil']}")
+    print(f"TDCG Analisa : {data['tdcg_analisa']}")
+    print("====================")
     message = format_laporan_to_whatsapp_single(data)
     print(f"✓ Pesan siap ({len(message)} karakter)")
 
