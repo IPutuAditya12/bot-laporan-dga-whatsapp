@@ -17,16 +17,14 @@ def read_laporan_from_google_sheets(sheet_id: str, sheet_name: str) -> Dict:
         
         print("✓ Mengambil data dari Google Sheets...")
         df = pd.read_csv(csv_url, header=None)
-        print(f"✓ Data diambil: {df.shape[0]} baris x {df.shape[1]} kolom")
+        print(f"✓ Data diambil: {df.shape[0]} baris x {df.shape[1]} kolom\n")
         
-        # Tampilkan preview 40 baris pertama (untuk debug)
-        print("\n--- PREVIEW SHEET (10 kolom pertama) ---")
-        print(df.iloc[:40, :10].to_string())
-        print("------------------------------------\n")
+        # === OFFSET PERBAIKAN GESER ===
+        OFFSET = 5   # Ubah ini jika masih geser (coba 4, 5, atau 6)
         
         def get_cell(row: int, col: int, default: Any = ""):
             try:
-                val = df.iloc[row, col]
+                val = df.iloc[row + OFFSET, col]
                 if pd.isna(val) or str(val).strip() == "":
                     return default
                 return str(val).strip()
@@ -36,10 +34,10 @@ def read_laporan_from_google_sheets(sheet_id: str, sheet_name: str) -> Dict:
         def clean_number(val):
             if not val:
                 return "0"
-            # Hapus satuan & karakter non-angka kecuali titik/koma
-            val = str(val).replace("ppm", "").replace("°C", "").strip()
-            return val
+            return str(val).replace("ppm", "").replace("°C", "").replace(",", ".").strip()
 
+        print(f"⚙️ Menggunakan OFFSET = {OFFSET} baris\n")
+        
         data = {
             # Header
             'perusahaan': get_cell(2, 1, 'PT GI REJOSO PASURUAN'),
@@ -71,7 +69,7 @@ def read_laporan_from_google_sheets(sheet_id: str, sheet_name: str) -> Dict:
             'impedansi': get_cell(13, 6),
             'berat_total': get_cell(14, 6),
 
-            # Gas Analysis
+            # Gas Analysis (mulai D19 / baris 18)
             'h2_hasil': clean_number(get_cell(18, 3)),
             'h2_kondisi': get_cell(18, 4),
             'h2_prealarm': get_cell(18, 5),
@@ -129,11 +127,18 @@ def read_laporan_from_google_sheets(sheet_id: str, sheet_name: str) -> Dict:
             'duval_triangle_rekomendasi': get_cell(39, 2),
         }
 
-        print("✓ Data berhasil dipetakan")
+        # Tampilkan hasil mapping untuk debug
+        print("🔍 HASIL MAPPING (beberapa contoh):")
+        print(f"Manufacture     : {data['manufacture']}")
+        print(f"Kapasitas       : {data['kapasitas']}")
+        print(f"H2 Hasil        : {data['h2_hasil']}")
+        print(f"TDCG Hasil      : {data['tdcg_hasil']}")
+        print(f"Key Gas Analisa : {data['keygas_analisa']}")
+        
         return data
 
     except Exception as e:
-        print(f"✗ Error saat membaca sheet: {str(e)}")
+        print(f"✗ Error: {str(e)}")
         import traceback
         traceback.print_exc()
         return None
