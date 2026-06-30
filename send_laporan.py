@@ -112,6 +112,7 @@ def read_laporan_from_google_sheets(sheet_id: str, sheet_name: str) -> Optional[
         rekom_end = pos_tool[0] if pos_tool else df.shape[0]
 
         # ---------- Header umum ----------
+        perusahaan = "PT GI REJOSO INDONESIA"
         judul_laporan = value_right(df, pos_tgl_ukur_label, offset=1, default="LAPORAN RUTIN DGA")
         tahun = value_below(df, pos_tgl_ukur_label, offset=1, default="")  # baris di bawah judul = tahun (kolom C)
         # tahun sebenarnya ada 1 kolom ke kanan dari posisi label, 1 baris di bawah -> ambil manual:
@@ -121,7 +122,7 @@ def read_laporan_from_google_sheets(sheet_id: str, sheet_name: str) -> Optional[
             tahun = "" if pd.isna(tahun) else str(tahun).strip()
 
         data = {
-            'perusahaan': first_nonempty_above(df, pos_tgl_ukur_label[0]) if pos_tgl_ukur_label else "",
+            'perusahaan': perusahaan,
             'judul_laporan': judul_laporan,
             'tahun': tahun or "2025",
             'tanggal_pengukuran': value_below(df, pos_tgl_ukur_label, offset=1),
