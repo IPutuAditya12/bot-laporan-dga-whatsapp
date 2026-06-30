@@ -235,8 +235,11 @@ def format_laporan_to_whatsapp_single(data: Dict) -> str:
     message += f"Serial Number: {data['serial_number']}\n"
     message += f"Tegangan Primer: {data['tegangan_primer']}\n"
     message += f"Tegangan Sekunder: {data['tegangan_sekunder']}\n"
-    message += f"Frequency: {data['frequency']} | Phase: {data['phase']}\n"
-    message += f"Cooling: {data['cooling_type']} | Konfigurasi: {data['konfigurasi']}\n"
+    message += f"Frequency: {data['frequency']}\n"
+    message += f"Phase: {data['phase']}\n"
+    message += f"Kapasital Oli: {data['berat_oli']}\n"
+    message += f"Cooling: {data['cooling_type']}\n"
+    message += f"Konfigurasi: {data['konfigurasi']}\n"
     message += f"Tahun Pembuatan: {data['tahun_pembuatan']}\n\n"
 
     message += "*🔬 CONTENT ANALYSIS*\n\n"
