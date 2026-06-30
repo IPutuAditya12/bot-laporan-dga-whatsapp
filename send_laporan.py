@@ -256,7 +256,7 @@ def format_laporan_to_whatsapp_single(data: Dict) -> str:
     ]
     for nama, simbol, hasil, kondisi, pre, alarm in gas_list:
         message += f"**{nama} ({simbol})**\n"
-        message += f"Hasil: {hasil} | Kondisi: {kondisi} | PreAlarm: {pre} | Alarm: {alarm}\n\n"
+        message += f"Hasil Pengujian: {hasil} | Kondisi: {kondisi} | PreAlarm: {pre} | Alarm: {alarm}\n\n"
 
     message += "*🔍 HASIL ANALISA*\n\n"
     message += f"TDCG : {data['tdcg_analisa']}\n"
