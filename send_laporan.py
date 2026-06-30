@@ -140,10 +140,10 @@ def read_laporan_from_google_sheets(sheet_id: str, sheet_name: str) -> Optional[
 
             'arus_primer': value_right(df, find_label(df, "Arus Primer", pos_spek[0] if pos_spek else 0)),
             'arus_sekunder': value_right(df, find_label(df, "Arus Sekunder", pos_spek[0] if pos_spek else 0)),
-            'frequency': value_right(df, find_label(df, "Frequency", pos_spek[0] if pos_spek else 0)),
+            'frequency': value_right(df, find_label(df, "Frequency", pos_spek[0] if pos_spek else 0, exact=False)),
             'phase': value_right(df, find_label(df, "Phase", pos_spek[0] if pos_spek else 0)),
             'temp_rise': value_right(df, find_label(df, "Temp Rise", pos_spek[0] if pos_spek else 0)),
-            'berat_oli': value_right(df, find_label(df, "Berat Oli", pos_spek[0] if pos_spek else 0)),
+            'berat_oli': value_right(df, find_label(df, "Berat Oli", pos_spek[0] if pos_spek else 0, exact=False)),
 
             'konfigurasi': value_right(df, find_label(df, "Konfigurasi", pos_spek[0] if pos_spek else 0)),
             'cooling_type': value_right(df, find_label(df, "Cooling Type", pos_spek[0] if pos_spek else 0)),
