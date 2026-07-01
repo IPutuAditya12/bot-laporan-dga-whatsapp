@@ -190,7 +190,7 @@ def read_laporan_from_google_sheets(sheet_id: str, sheet_name: str) -> Optional[
             tahun = "" if pd.isna(tahun) else str(tahun).strip()
 
         data = {
-            'perusahaan': "PT GI REJOSO INDONESIA",
+            'perusahaan': "GI REJOSO INDONESIA",
             'judul_laporan': judul_laporan,
             'tahun': tahun or "2025",
             'tanggal_pengukuran': value_below(df, pos_tgl_ukur_label, offset=1),
@@ -337,8 +337,10 @@ def format_laporan_to_whatsapp_single(data: Dict) -> str:
     message += f"Serial Number: {data['serial_number']}\n"
     message += f"Tegangan Primer: {data['tegangan_primer']}\n"
     message += f"Tegangan Sekunder: {data['tegangan_sekunder']}\n"
-    message += f"Frequency: {data['frequency']} | Phase: {data['phase']}\n"
-    message += f"Cooling: {data['cooling_type']} | Konfigurasi: {data['konfigurasi']}\n"
+    message += f"Frequency: {data['frequency']}\n"
+    message += f"Phase: {data['phase']}\n"
+    message += f"Cooling: {data['cooling_type']}\n" 
+    message += f"Konfigurasi: {data['konfigurasi']}\n"
     message += f"Tahun Pembuatan: {data['tahun_pembuatan']}\n\n"
 
     message += "*🔬 CONTENT ANALYSIS*\n\n"
@@ -355,19 +357,19 @@ def format_laporan_to_whatsapp_single(data: Dict) -> str:
     ]
     for nama, simbol, hasil, kondisi, pre, alarm in gas_list:
         message += f"**{nama} ({simbol})**\n"
-        message += f"Hasil: {hasil} | Kondisi: {kondisi} | PreAlarm: {pre} | Alarm: {alarm}\n\n"
+        message += f"Hasil Pengujian: {hasil} | Kondisi 2: {kondisi} | Pre-ALARM: {pre} | ALARM: {alarm}\n\n"
 
     message += "*🔍 HASIL ANALISA*\n\n"
     message += f"TDCG : {data['tdcg_analisa']}\n"
-    message += f"Key Gas : {data['keygas_analisa']}\n"
-    message += f"Roger Ratio : {data['roger_ratio_analisa']}\n"
-    message += f"Duval Triangle: {data['duval_triangle_analisa']}\n\n"
+    message += f"KEYGAS : {data['keygas_analisa']}\n"
+    message += f"ROGER RATIO : {data['roger_ratio_analisa']}\n"
+    message += f"DUVAL TRIANGLE: {data['duval_triangle_analisa']}\n\n"
 
     message += "*📌 REKOMENDASI*\n\n"
     message += f"TDCG : {data['tdcg_rekomendasi']}\n"
-    message += f"Key Gas : {data['keygas_rekomendasi']}\n"
-    message += f"Roger Ratio : {data['roger_ratio_rekomendasi']}\n"
-    message += f"Duval Triangle: {data['duval_triangle_rekomendasi']}\n\n"
+    message += f"KEYGAS : {data['keygas_rekomendasi']}\n"
+    message += f"ROGER RATIO : {data['roger_ratio_rekomendasi']}\n"
+    message += f"DUVAL TRIANGLE: {data['duval_triangle_rekomendasi']}\n\n"
 
     message += "=" * 50 + "\n"
     message += f"Generated: {get_current_time_wib()}\n"
