@@ -12,11 +12,29 @@ SHEET_NAME = "Laporan"
 
 
 # ================== HELPER: PENCARIAN BERBASIS LABEL ==================
+def clean_cell_str(val) -> str:
+    """Konversi nilai sel ke string, hilangkan '.0' di belakang angka bulat
+    (pandas suka membaca '3' sebagai 3.0 kalau kolomnya numerik)."""
+    s = str(val).strip()
+    if s.endswith(".0"):
+        try:
+            f = float(s)
+            if f == int(f):
+                return str(int(f))
+        except ValueError:
+            pass
+    return s
+
+
 def norm(s: Any) -> str:
-    """Normalisasi teks untuk pencocokan label (hilangkan spasi/tanda baca trailing, lowercase)."""
+    """Normalisasi teks untuk pencocokan label (hilangkan semua whitespace tersembunyi, lowercase)."""
     if s is None:
         return ""
-    s = str(s).strip()
+    # Ganti non-breaking space, tab, dan karakter whitespace unicode lainnya
+    s = str(s).replace('\xa0', ' ').replace('\t', ' ')
+    # Hilangkan semua karakter non-printable
+    s = ''.join(c if c.isprintable() else ' ' for c in s)
+    s = ' '.join(s.split())  # normalisasi whitespace ganda
     if s.endswith(":"):
         s = s[:-1].strip()
     return s.lower()
@@ -43,18 +61,27 @@ def find_label(df: pd.DataFrame, label: str, row_start: int = 0, row_end: Option
     return None
 
 
-def value_right(df: pd.DataFrame, pos: Optional[Tuple[int, int]], offset: int = 1, default: str = "") -> str:
-    """Ambil nilai di sebelah kanan posisi label."""
+def value_right(df: pd.DataFrame, pos: Optional[Tuple[int, int]], offset: int = 1, default: str = "",
+                 scan: bool = False, max_scan: int = 3) -> str:
+    """Ambil nilai di sebelah kanan posisi label.
+
+    Jika scan=True dan sel pada `offset` kosong, lanjut mencari sel tidak-kosong
+    berikutnya ke kanan (sampai max_scan kolom). Ini untuk berjaga-jaga kalau ada
+    kolom tersembunyi/merge yang membuat posisi nilai sebenarnya geser sedikit
+    dari offset yang diharapkan.
+    """
     if pos is None:
         return default
     r, c = pos
-    c2 = c + offset
-    if c2 >= df.shape[1]:
-        return default
-    val = df.iat[r, c2]
-    if pd.isna(val) or str(val).strip() == "":
-        return default
-    return str(val).strip()
+    tries = range(offset, offset + max_scan) if scan else [offset]
+    for o in tries:
+        c2 = c + o
+        if c2 >= df.shape[1]:
+            continue
+        val = df.iat[r, c2]
+        if pd.notna(val) and str(val).strip() != "":
+            return clean_cell_str(val)
+    return default
 
 
 def value_below(df: pd.DataFrame, pos: Optional[Tuple[int, int]], offset: int = 1, default: str = "") -> str:
@@ -112,7 +139,6 @@ def read_laporan_from_google_sheets(sheet_id: str, sheet_name: str) -> Optional[
         rekom_end = pos_tool[0] if pos_tool else df.shape[0]
 
         # ---------- Header umum ----------
-        perusahaan = "PT GI REJOSO INDONESIA"
         judul_laporan = value_right(df, pos_tgl_ukur_label, offset=1, default="LAPORAN RUTIN DGA")
         tahun = value_below(df, pos_tgl_ukur_label, offset=1, default="")  # baris di bawah judul = tahun (kolom C)
         # tahun sebenarnya ada 1 kolom ke kanan dari posisi label, 1 baris di bawah -> ambil manual:
@@ -122,7 +148,7 @@ def read_laporan_from_google_sheets(sheet_id: str, sheet_name: str) -> Optional[
             tahun = "" if pd.isna(tahun) else str(tahun).strip()
 
         data = {
-            'perusahaan': perusahaan,
+            'perusahaan': "PT GI REJOSO INDONESIA",
             'judul_laporan': judul_laporan,
             'tahun': tahun or "2025",
             'tanggal_pengukuran': value_below(df, pos_tgl_ukur_label, offset=1),
@@ -130,26 +156,26 @@ def read_laporan_from_google_sheets(sheet_id: str, sheet_name: str) -> Optional[
             'unit': value_right(df, pos_unit, offset=1),
             'asset': value_right(df, pos_asset, offset=1),
 
-            # ---------- Spesifikasi trafo (label : nilai = selalu sel sebelah kanan) ----------
-            'manufacture': value_right(df, find_label(df, "Manufacture", pos_spek[0] if pos_spek else 0)),
-            'type': value_right(df, find_label(df, "Type", pos_spek[0] if pos_spek else 0)),
-            'kapasitas': value_right(df, find_label(df, "Kapasitas", pos_spek[0] if pos_spek else 0)),
-            'serial_number': value_right(df, find_label(df, "Serial No", pos_spek[0] if pos_spek else 0, exact=False)),
-            'tegangan_primer': value_right(df, find_label(df, "Tegangan Primer", pos_spek[0] if pos_spek else 0)),
-            'tegangan_sekunder': value_right(df, find_label(df, "Tegangan Sekunder", pos_spek[0] if pos_spek else 0)),
+            # ---------- Spesifikasi trafo (label : nilai = sel sebelah kanan, scan jaga-jaga jika kolom geser) ----------
+            'manufacture': value_right(df, find_label(df, "Manufacture", pos_spek[0] if pos_spek else 0), scan=True),
+            'type': value_right(df, find_label(df, "Type", pos_spek[0] if pos_spek else 0), scan=True),
+            'kapasitas': value_right(df, find_label(df, "Kapasitas", pos_spek[0] if pos_spek else 0), scan=True),
+            'serial_number': value_right(df, find_label(df, "Serial No", pos_spek[0] if pos_spek else 0, exact=False), scan=True),
+            'tegangan_primer': value_right(df, find_label(df, "Tegangan Primer", pos_spek[0] if pos_spek else 0), scan=True),
+            'tegangan_sekunder': value_right(df, find_label(df, "Tegangan Sekunder", pos_spek[0] if pos_spek else 0), scan=True),
 
-            'arus_primer': value_right(df, find_label(df, "Arus Primer", pos_spek[0] if pos_spek else 0)),
-            'arus_sekunder': value_right(df, find_label(df, "Arus Sekunder", pos_spek[0] if pos_spek else 0)),
-            'frequency': value_right(df, find_label(df, "Frequency", pos_spek[0] if pos_spek else 0)),
-            'phase': value_right(df, find_label(df, "Phase", pos_spek[0] if pos_spek else 0)),
-            'temp_rise': value_right(df, find_label(df, "Temp Rise", pos_spek[0] if pos_spek else 0)),
-            'berat_oli': value_right(df, find_label(df, "Berat Oli", pos_spek[0] if pos_spek else 0)),
+            'arus_primer': value_right(df, find_label(df, "Arus Primer", pos_spek[0] if pos_spek else 0), scan=True),
+            'arus_sekunder': value_right(df, find_label(df, "Arus Sekunder", pos_spek[0] if pos_spek else 0), scan=True),
+            'frequency': value_right(df, find_label(df, "Frequency", pos_spek[0] if pos_spek else 0), scan=True),
+            'phase': value_right(df, find_label(df, "Phase", pos_spek[0] if pos_spek else 0), scan=True),
+            'temp_rise': value_right(df, find_label(df, "Temp Rise", pos_spek[0] if pos_spek else 0), scan=True),
+            'berat_oli': value_right(df, find_label(df, "Berat Oli", pos_spek[0] if pos_spek else 0), scan=True),
 
-            'konfigurasi': value_right(df, find_label(df, "Konfigurasi", pos_spek[0] if pos_spek else 0)),
-            'cooling_type': value_right(df, find_label(df, "Cooling Type", pos_spek[0] if pos_spek else 0)),
-            'tahun_pembuatan': value_right(df, find_label(df, "Tahun Pembuatan", pos_spek[0] if pos_spek else 0)),
-            'impedansi': value_right(df, find_label(df, "Impedansi", pos_spek[0] if pos_spek else 0, exact=False)),
-            'berat_total': value_right(df, find_label(df, "Berat Total", pos_spek[0] if pos_spek else 0)),
+            'konfigurasi': value_right(df, find_label(df, "Konfigurasi", pos_spek[0] if pos_spek else 0), scan=True),
+            'cooling_type': value_right(df, find_label(df, "Cooling Type", pos_spek[0] if pos_spek else 0), scan=True),
+            'tahun_pembuatan': value_right(df, find_label(df, "Tahun Pembuatan", pos_spek[0] if pos_spek else 0), scan=True),
+            'impedansi': value_right(df, find_label(df, "Impedansi", pos_spek[0] if pos_spek else 0, exact=False), scan=True),
+            'berat_total': value_right(df, find_label(df, "Berat Total", pos_spek[0] if pos_spek else 0), scan=True),
         }
 
         # ---------- Tabel gas (CONTENT ANALYSIS) ----------
@@ -191,11 +217,27 @@ def read_laporan_from_google_sheets(sheet_id: str, sheet_name: str) -> Optional[
             pos = find_label(df, label, row_start=rekom_start, row_end=rekom_end)
             data[key] = value_right(df, pos)
 
+        # Debug khusus untuk Frequency & Berat Oli
+        pos_freq_dbg = find_label(df, "Frequency", pos_spek[0] if pos_spek else 0)
+        pos_boli_dbg = find_label(df, "Berat Oli", pos_spek[0] if pos_spek else 0)
+        print(f"[DEBUG] pos 'Frequency' : {pos_freq_dbg}")
+        if pos_freq_dbg:
+            r2, c2 = pos_freq_dbg
+            print(f"  -> label=[{r2},{c2}] = {repr(df.iat[r2,c2])}")
+            print(f"  -> nilai=[{r2},{c2+1}] = {repr(df.iat[r2,c2+1]) if c2+1 < df.shape[1] else 'OUT'}")
+        print(f"[DEBUG] pos 'Berat Oli' : {pos_boli_dbg}")
+        if pos_boli_dbg:
+            r2, c2 = pos_boli_dbg
+            print(f"  -> label=[{r2},{c2}] = {repr(df.iat[r2,c2])}")
+            print(f"  -> nilai=[{r2},{c2+1}] = {repr(df.iat[r2,c2+1]) if c2+1 < df.shape[1] else 'OUT'}")
+
         # Debug mapping
-        print("HASIL MAPPING (cek beberapa contoh):")
+        print("\nHASIL MAPPING:")
         print(f"Perusahaan      : {data['perusahaan']}")
         print(f"Manufacture     : {data['manufacture']}")
         print(f"Kapasitas       : {data['kapasitas']}")
+        print(f"Frequency       : {data['frequency']}")
+        print(f"Berat Oli       : {data['berat_oli']}")
         print(f"H2 Hasil        : {data['h2_hasil']}")
         print(f"CO2 Hasil       : {data['co2_hasil']}")
         print(f"TDCG Hasil      : {data['tdcg_hasil']}")
@@ -256,7 +298,7 @@ def format_laporan_to_whatsapp_single(data: Dict) -> str:
     ]
     for nama, simbol, hasil, kondisi, pre, alarm in gas_list:
         message += f"**{nama} ({simbol})**\n"
-        message += f"Hasil Pengujian: {hasil} | Kondisi: {kondisi} | PreAlarm: {pre} | Alarm: {alarm}\n\n"
+        message += f"Hasil: {hasil} | Kondisi: {kondisi} | PreAlarm: {pre} | Alarm: {alarm}\n\n"
 
     message += "*🔍 HASIL ANALISA*\n\n"
     message += f"TDCG : {data['tdcg_analisa']}\n"
