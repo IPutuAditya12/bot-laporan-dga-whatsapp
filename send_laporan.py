@@ -258,6 +258,14 @@ def read_laporan_from_google_sheets(sheet_id: str, sheet_name: str) -> Optional[
             pos = find_label(df, label, row_start=rekom_start, row_end=rekom_end)
             data[key] = value_right(df, pos)
 
+        # ===== DIAGNOSTIC DUMP (hapus setelah masalah solved) =====
+        print("\n=== RAW CSV ROWS 0-20 ===")
+        for r in range(min(21, df.shape[0])):
+            row_vals = [str(df.iat[r, c])[:15] if not pd.isna(df.iat[r, c]) else "." for c in range(min(8, df.shape[1]))]
+            print(f"  row{r:02d}: {row_vals}")
+        print("=========================\n")
+        # ===== END DIAGNOSTIC =====
+
         # Debug khusus untuk Frequency & Berat Oli
         pos_freq_dbg = find_label_with_value(df, "Frequency", pos_spek[0] if pos_spek else 0)
         pos_boli_dbg = find_label_with_value(df, "Berat Oli", pos_spek[0] if pos_spek else 0)
