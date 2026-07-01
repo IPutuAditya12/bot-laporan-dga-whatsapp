@@ -61,6 +61,33 @@ def find_label(df: pd.DataFrame, label: str, row_start: int = 0, row_end: Option
     return None
 
 
+def find_label_with_value(df: pd.DataFrame, label: str, row_start: int = 0,
+                          row_end: Optional[int] = None, max_scan_cols: int = 4) -> Optional[Tuple[int, int]]:
+    """
+    Seperti find_label, tapi HANYA mengembalikan posisi jika minimal ada satu sel
+    tidak kosong di sebelah kanannya (offset 1..max_scan_cols).
+    Berguna saat label muncul lebih dari sekali di sheet tapi hanya satu yang
+    punya nilai nyata di sampingnya.
+    """
+    target = norm(label)
+    if row_end is None:
+        row_end = df.shape[0]
+    for r in range(row_start, min(row_end, df.shape[0])):
+        for c in range(df.shape[1]):
+            cell = norm(df.iat[r, c])
+            if not cell or cell != target:
+                continue
+            # Cek apakah ada nilai non-kosong di sebelah kanan
+            for o in range(1, max_scan_cols + 1):
+                c2 = c + o
+                if c2 >= df.shape[1]:
+                    break
+                val = df.iat[r, c2]
+                if pd.notna(val) and str(val).strip().replace(' ', '') != '':
+                    return (r, c)
+    return None
+
+
 def value_right(df: pd.DataFrame, pos: Optional[Tuple[int, int]], offset: int = 1, default: str = "",
                  scan: bool = False, max_scan: int = 3) -> str:
     """Ambil nilai di sebelah kanan posisi label.
@@ -166,10 +193,10 @@ def read_laporan_from_google_sheets(sheet_id: str, sheet_name: str) -> Optional[
 
             'arus_primer': value_right(df, find_label(df, "Arus Primer", pos_spek[0] if pos_spek else 0), scan=True),
             'arus_sekunder': value_right(df, find_label(df, "Arus Sekunder", pos_spek[0] if pos_spek else 0), scan=True),
-            'frequency': value_right(df, find_label(df, "Frequency", pos_spek[0] if pos_spek else 0), scan=True),
+            'frequency': value_right(df, find_label_with_value(df, "Frequency", pos_spek[0] if pos_spek else 0), scan=True),
             'phase': value_right(df, find_label(df, "Phase", pos_spek[0] if pos_spek else 0), scan=True),
             'temp_rise': value_right(df, find_label(df, "Temp Rise", pos_spek[0] if pos_spek else 0), scan=True),
-            'berat_oli': value_right(df, find_label(df, "Berat Oli", pos_spek[0] if pos_spek else 0), scan=True),
+            'berat_oli': value_right(df, find_label_with_value(df, "Berat Oli", pos_spek[0] if pos_spek else 0), scan=True),
 
             'konfigurasi': value_right(df, find_label(df, "Konfigurasi", pos_spek[0] if pos_spek else 0), scan=True),
             'cooling_type': value_right(df, find_label(df, "Cooling Type", pos_spek[0] if pos_spek else 0), scan=True),
@@ -218,8 +245,8 @@ def read_laporan_from_google_sheets(sheet_id: str, sheet_name: str) -> Optional[
             data[key] = value_right(df, pos)
 
         # Debug khusus untuk Frequency & Berat Oli
-        pos_freq_dbg = find_label(df, "Frequency", pos_spek[0] if pos_spek else 0)
-        pos_boli_dbg = find_label(df, "Berat Oli", pos_spek[0] if pos_spek else 0)
+        pos_freq_dbg = find_label_with_value(df, "Frequency", pos_spek[0] if pos_spek else 0)
+        pos_boli_dbg = find_label_with_value(df, "Berat Oli", pos_spek[0] if pos_spek else 0)
         print(f"[DEBUG] pos 'Frequency' : {pos_freq_dbg}")
         if pos_freq_dbg:
             r2, c2 = pos_freq_dbg
@@ -277,11 +304,8 @@ def format_laporan_to_whatsapp_single(data: Dict) -> str:
     message += f"Serial Number: {data['serial_number']}\n"
     message += f"Tegangan Primer: {data['tegangan_primer']}\n"
     message += f"Tegangan Sekunder: {data['tegangan_sekunder']}\n"
-    message += f"Frequency: {data['frequency']}\n"
-    message += f"Phase: {data['phase']}\n"
-    message += f"Kapasital Oli: {data['berat_oli']}\n"
-    message += f"Cooling: {data['cooling_type']}\n"
-    message += f"Konfigurasi: {data['konfigurasi']}\n"
+    message += f"Frequency: {data['frequency']} | Phase: {data['phase']}\n"
+    message += f"Cooling: {data['cooling_type']} | Konfigurasi: {data['konfigurasi']}\n"
     message += f"Tahun Pembuatan: {data['tahun_pembuatan']}\n\n"
 
     message += "*🔬 CONTENT ANALYSIS*\n\n"
