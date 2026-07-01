@@ -1,25 +1,25 @@
 name: Kirim Laporan DGA
 
 on:
-  schedule:
-    - cron: '30 1 * * *'  # 08:30 WIB (01:30 UTC)
   workflow_dispatch:
 
 jobs:
   send-laporan:
     runs-on: ubuntu-latest
-    
+
     steps:
       - uses: actions/checkout@v3
-      
+
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.10'
-      
+
       - name: Install dependencies
         run: |
           pip install pandas requests
-      
+
       - name: Run script
+        env:
+          FONNTE_API_KEY: ${{ secrets.FONNTE_API_KEY }}
         run: python send_laporan.py
