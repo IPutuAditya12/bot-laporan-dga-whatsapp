@@ -3,9 +3,10 @@ import requests
 from typing import Dict, Any, Optional, Tuple
 import time
 from datetime import datetime, timedelta, timezone
+import os
 
 # ================== KONFIGURASI ==================
-FONNTE_API_KEY = "9eHaFAQMb9pqoGABACCb"
+FONNTE_API_KEY = os.environ.get("FONNTE_API_KEY", "")
 FONNTE_API_URL = "https://api.fonnte.com/send"
 SHEET_ID = "1ZlPaZQwz89UkjABHgxqmcYnTklB5yK2V"
 SHEET_NAME = "Laporan"
