@@ -159,7 +159,8 @@ def find_cell_containing(df: pd.DataFrame, keyword: str) -> str:
 # ================== AMBIL & PARSE DATA ==================
 def read_laporan_from_google_sheets(sheet_id: str, sheet_name: str) -> Optional[Dict]:
     try:
-        csv_url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv&sheet={sheet_name}"
+        # GID tab "Laporan" = 688001833 (dari URL sheet)
+        csv_url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv&gid=688001833"
         print("Mengambil data dari Google Sheets...")
         df = pd.read_csv(csv_url, header=None)
         print(f"Data diambil: {df.shape[0]} baris x {df.shape[1]} kolom\n")
