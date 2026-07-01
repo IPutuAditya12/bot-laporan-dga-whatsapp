@@ -258,7 +258,17 @@ def read_laporan_from_google_sheets(sheet_id: str, sheet_name: str) -> Optional[
             pos = find_label(df, label, row_start=rekom_start, row_end=rekom_end)
             data[key] = value_right(df, pos)
 
-        # ===== DIAGNOSTIC DUMP (hapus setelah masalah solved) =====
+        # ===== DIAGNOSTIC DUMP =====
+        print(f"\nTotal kolom: {df.shape[1]}")
+        print("\n=== SEMUA KOLOM row 7 (Frequency) ===")
+        for c in range(df.shape[1]):
+            val = df.iat[7, c]
+            print(f"  col{c}: {repr(val)}")
+        print("\n=== SEMUA KOLOM row 10 (Berat Oli) ===")
+        for c in range(df.shape[1]):
+            val = df.iat[10, c]
+            print(f"  col{c}: {repr(val)}")
+        # =====
         print("\n=== RAW CSV ROWS 0-20 ===")
         for r in range(min(21, df.shape[0])):
             row_vals = [str(df.iat[r, c])[:15] if not pd.isna(df.iat[r, c]) else "." for c in range(min(8, df.shape[1]))]
