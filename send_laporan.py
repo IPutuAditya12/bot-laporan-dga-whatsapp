@@ -142,6 +142,20 @@ def clean_number(val):
     return str(val).replace("ppm", "").replace("°C", "").replace(",", ".").strip()
 
 
+def find_cell_containing(df: pd.DataFrame, keyword: str) -> str:
+    """Cari sel pertama yang isinya mengandung kata kunci (case-insensitive), kembalikan nilainya."""
+    kw = keyword.lower()
+    for r in range(df.shape[0]):
+        for c in range(df.shape[1]):
+            val = df.iat[r, c]
+            if pd.isna(val):
+                continue
+            s = str(val).strip()
+            if kw in s.lower():
+                return s
+    return ""
+
+
 # ================== AMBIL & PARSE DATA ==================
 def read_laporan_from_google_sheets(sheet_id: str, sheet_name: str) -> Optional[Dict]:
     try:
@@ -193,10 +207,10 @@ def read_laporan_from_google_sheets(sheet_id: str, sheet_name: str) -> Optional[
 
             'arus_primer': value_right(df, find_label(df, "Arus Primer", pos_spek[0] if pos_spek else 0), scan=True),
             'arus_sekunder': value_right(df, find_label(df, "Arus Sekunder", pos_spek[0] if pos_spek else 0), scan=True),
-            'frequency': value_right(df, find_label_with_value(df, "Frequency", pos_spek[0] if pos_spek else 0), scan=True),
+            'frequency': find_cell_containing(df, "Hz"),
             'phase': value_right(df, find_label(df, "Phase", pos_spek[0] if pos_spek else 0), scan=True),
             'temp_rise': value_right(df, find_label(df, "Temp Rise", pos_spek[0] if pos_spek else 0), scan=True),
-            'berat_oli': value_right(df, find_label_with_value(df, "Berat Oli", pos_spek[0] if pos_spek else 0), scan=True),
+            'berat_oli': find_cell_containing(df, "ltr"),
 
             'konfigurasi': value_right(df, find_label(df, "Konfigurasi", pos_spek[0] if pos_spek else 0), scan=True),
             'cooling_type': value_right(df, find_label(df, "Cooling Type", pos_spek[0] if pos_spek else 0), scan=True),
