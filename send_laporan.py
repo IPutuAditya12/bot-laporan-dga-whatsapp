@@ -10,7 +10,7 @@ FONNTE_API_KEY = os.environ.get("FONNTE_API_KEY", "")
 FONNTE_API_URL = "https://api.fonnte.com/send"
 SHEET_ID = "1ZlPaZQwz89UkjABHgxqmcYnTklB5yK2V"
 SHEET_NAME = "Laporan"
-
+ 
 
 # ================== HELPER: PENCARIAN BERBASIS LABEL ==================
 def clean_cell_str(val) -> str:
