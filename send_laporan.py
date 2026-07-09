@@ -421,7 +421,7 @@ if __name__ == "__main__":
 
     phone_numbers = [
         {"number": "6282157905834", "type": "personal"},
-        {"number": "120363426691870718@g.us", "type": "group"},
+        {"number": "120363410539751979@g.us", "type": "group"},
     ]
 
     success = 0
